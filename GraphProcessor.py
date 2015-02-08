@@ -29,14 +29,10 @@ class GraphProcessor:
 
     def __init__(self):
         self.G = nx.Graph()
-        self.dupboss_A = sp.csr_matrix()
-        self.comivst_A = sp.csr_matrix()
-        self.sym_dupboss_A = sp.csr_matrix()
-        self.sym_comivst_A = sp.csr_matrix()
-        self.dupboss_edgesNum = 0
-        self.comivst_edgesNum = 0
-        self.edgesNum = 0
+        self.A = sp.csr_matrix()
+        self.symA = sp.csr_matrix()
         self.nodesNum = 0
+        self.edgesNum = 0
         self.nodelist = list()
 
     def load_graph(self, file_path):
@@ -62,67 +58,61 @@ class GraphProcessor:
         self.nodelist = list(self.G.nodes())
         self.nodesNum = len(self.nodelist)
         self.edgesNum = len(self.G.edges())
-        self.dupboss_A = nx.to_scipy_sparse_matrix(self.G, nodelist=self.nodelist, weight='dupbossjaccard', dtype=float)
-        self.comivst_A = nx.to_scipy_sparse_matrix(self.G, nodelist=self.nodelist, weight='comivstratio', dtype=float)
+        self.A = nx.to_scipy_sparse_matrix(self.G, nodelist=self.nodelist, weight='dupbossjaccard', dtype=float)
 
     def sym_norm(self):
-        self.sym_dupboss_A = self.sym_normalize(self.dupboss_A)
-        self.sym_comivst_A = self.sym_normalize(self.comivst_A)
+        self.symA = self.sym_normalize(self.A)
 
-    def relationship_eval(self, rel_def, func_def, query):
-
-        if len(self.dupboss_A) == 0 or len(self.comivst_A) == 0:
+    def relationship_eval(self, rel_def, query):
+        
+        if len(self.A) == 0:
             self.to_sparse()
-        if len(self.sym_dupboss_A) == 0 or len(self.sym_comivst_A) == 0:
+        if len(self.symA) == 0:
             self.sym_norm()
-
-        if rel_def == 1:
-            tmpA = self.sym_dupboss_A
-        else:
-            tmpA = self.sym_comivst_A
-
+        
         # query: "com1,com2,com3,... \t winner"
         q_list = query.strip('\n').split('\t')
         tenders = list(q_list[0].split(','))
-
+        
         # {(com1, com2):distance, ...}
         ret_dict = dict()
-
+        
         if len(q_list) == 2:
             # with winner
             winner = q_list[1]
             if winner not in self.nodelist or len(tenders) == 1 or winner == '-1':
                 return 'winner or tender data is wrong'
-
-            if func_def == 1:
+            
+            if rel_def == 1:
                 # (TKDE, 2007)
                 # Random-Walk Computation of Similarities between Nodes of a Graph with Application to
                 # Collaborative Recommendation
+        
                 for d in tenders:
-
+            
                     if d not in self.nodelist or winner == d:
                         continue
-
-                    distance = re.rw_sim(winner, d, tmpA, self.nodelist)
+                    
+                    distance = re.rw_sim(winner, d, self.symA, self.nodelist)  
                     ret_dict[(winner, d)] = distance
 
-            elif func_def == 2:
+            elif rel_def == 2:
                 #
                 # ???
                 #
                 for d in tenders:
-
+            
                     if d not in self.nodelist or winner == d:
                         continue
-
-                    distance = re.rw_sim(winner, d, tmpA, self.nodelist)
+                    
+                    distance = re.rw_sim(winner, d, self.symA, self.nodelist)  
                     ret_dict[(winner, d)] = distance
-
+                
             else:
                 return 'index of rel_def is wrong'
         else:
             # without winner
-            if func_def == 1:
+            if rel_def == 1:
                 # (TKDE, 2007)
                 # Random-Walk Computation of Similarities between Nodes of a Graph with Application to
                 # Collaborative Recommendation
@@ -130,17 +120,17 @@ class GraphProcessor:
                     com1 = tenders[i]
                     if com1 not in self.nodelist:
                         continue
-
+                    
                     for j in range(i+1, len(tenders)):
                         com2 = tenders[j]
-
+                        
                         if com2 not in self.nodelist:
                             continue
-
-                        distance = re.rw_sim(com1, com2, tmpA, self.nodelist)
+                        
+                        distance = re.rw_sim(com1, com2, self.symA, self.nodelist)
                         ret_dict[(com1, com2)] = distance
-
-            elif func_def == 2:
+            
+            elif rel_def == 2:
                 #
                 # ???
                 #
@@ -148,17 +138,17 @@ class GraphProcessor:
                     com1 = tenders[i]
                     if com1 not in self.nodelist:
                         continue
-
+                    
                     for j in range(i+1, len(tenders)):
                         com2 = tenders[j]
-
+                        
                         if com2 not in self.nodelist:
                             continue
-
-                        distance = re.rw_sim(com1, com2, tmpA, self.nodelist)
+                        
+                        distance = re.rw_sim(com1, com2, self.symA, self.nodelist)
                         ret_dict[(com1, com2)] = distance
 
             else:
                 return 'index of rel_def is wrong'
-
+        
         return ret_dict
