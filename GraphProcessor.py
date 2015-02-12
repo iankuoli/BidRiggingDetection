@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 __author__ = 'iankuoli'
 
 import networkx as nx
