@@ -11,7 +11,7 @@ RUN \
     apt-get update
 
 RUN \
-    apt-get install -y --no-recommends node npm python-dev python-pip python-numpy python-scipy && \
+    apt-get install -y --no-install-recommends node npm python-dev python-pip python-numpy python-scipy && \
     pip install networkx flask
 
 EXPOSE 80
